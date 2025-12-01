@@ -1,7 +1,7 @@
-"""Thin entrypoint wrapper that delegates to the cleaned package implementation.
+"""Entrypoint for CourseSync-Agent Web UI.
 
-This file is intentionally small: the real implementation lives in
-`coursesync-agent/agent/` to keep modules focused and testable.
+Usage:
+    python main.py         # Run web UI
 """
 
 try:
@@ -14,15 +14,21 @@ except Exception:
     # If python-dotenv isn't installed, continue silently; environment vars may still be set externally.
     pass
 
-from agent.cli import run_cli
 from agent.utils import console
 
 
 if __name__ == "__main__":
+    # Run web UI
     try:
-        run_cli()
+        import uvicorn
+        from webui import app
+        console.print("\n[bold cyan]🚀 Starting CourseSync Web UI...[/bold cyan]")
+        console.print("[green]📱 Open your browser to: http://localhost:8000[/green]\n")
+        uvicorn.run(app, host="0.0.0.0", port=8000)
+    except ImportError:
+        console.print("[red]❌ Error: uvicorn not installed. Install with: pip install uvicorn[/red]")
     except KeyboardInterrupt:
         console.print("\n\n[yellow]👋 Interrupted. Goodbye![/yellow]")
     except Exception as e:
-        console.print(f"\n[red]❌ Error: {str(e)}[/red]")
+        console.print(f"\n[red]❌ Error starting web UI: {str(e)}[/red]")
         console.print("[dim]Check your API keys and internet connection.[/dim]")

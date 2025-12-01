@@ -1,6 +1,6 @@
 # CourseSync-Agent
 
-An intelligent academic course management CLI Agent powered by Groq LLM for syllabus parsing, workload analysis, and smart scheduling.
+An intelligent academic course management Web Application powered by Groq LLM for syllabus parsing, workload analysis, and smart scheduling.
 
 ## Problem Statement
 
@@ -12,7 +12,7 @@ The academic course management landscape faces several critical challenges:
 4. **Study Planning**: Lack of optimized study schedules that account for workload distribution
 5. **Proactive Notifications**: Missing timely reminders and strategic study recommendations
 
-CourseSync-Agent addresses these challenges through an intelligent multi-agent system that automates course data synchronization, validation, and management.
+CourseSync-Agent addresses these challenges through an intelligent multi-agent system that automates course data synchronization, validation, and management via a beautiful, modern web interface.
 
 ## System Architecture
 ![System Architecture Diagram](diagram.png)
@@ -32,13 +32,14 @@ CourseSync-Agent addresses these challenges through an intelligent multi-agent s
      - Groq LLM (llama-3.3-70b-versatile) for intelligent processing
    
    - **External Services**:
-   - Firecrawl API for web page scraping
-   - SMTP (configurable via environment) for email notifications
+     - Firecrawl API for web page scraping
+     - SMTP (configurable via environment) for email notifications
    
-   - **UI Framework**:
-     - Rich CLI for beautiful terminal interface
-     - Progress indicators and styled output
-     - Interactive menu system
+   - **Web Framework**:
+     - FastAPI for robust backend API
+     - Modern responsive web UI with beautiful design
+     - Real-time updates and interactive visualizations
+     - Smooth animations and engaging user experience
 
 3. **Data Structures**
    - Course information (name, code, instructor)
@@ -49,25 +50,38 @@ CourseSync-Agent addresses these challenges through an intelligent multi-agent s
 
 ### Data Flow
 
-1. Input Sources:
-   - Manual syllabus text entry
+1. **Input Sources**:
+   - Manual syllabus text entry via web interface
+   - PDF file upload
    - Web page scraping via Firecrawl
    - Configuration via environment variables
-   - User preferences (study hours, semester dates)
+   - User preferences (study hours, semester dates) through settings
 
-2. Processing Pipeline:
+2. **Processing Pipeline**:
    - Syllabus parsing with structured JSON output
    - Workload analysis with risk identification
    - Schedule optimization with task breakdown
    - Smart notification generation
 
-3. Output Generation:
-   - Interactive CLI displays
-   - Structured JSON data exports
-   - Persistent local data folder (`data/`)
-   - Progress indicators and status updates
-   - Color-coded notifications and warnings
+3. **Output Generation**:
+   - Beautiful web dashboard with real-time statistics
+   - Interactive course and assignment management
+   - Visual workload analysis with charts
+   - Personalized study schedules
+   - Smart notification panel
+   - Calendar export (.ics format)
    - Email notifications (optional) with background scheduler
+
+## Features
+
+- 🎓 **Course Management**: Add courses via text, PDF, or URL scraping
+- 📋 **Assignment Tracking**: Track progress with visual progress bars
+- 📊 **Workload Analysis**: Visual breakdown of weekly hours and risk periods
+- 📅 **Smart Scheduling**: AI-generated personalized study schedules
+- 🔔 **Smart Notifications**: Strategic reminders and deadline alerts
+- 📆 **Calendar Export**: Export assignments to .ics format
+- ⚙️ **Customizable Settings**: Configure study hours, risk thresholds, and notifications
+- 📱 **Responsive Design**: Works beautifully on desktop, tablet, and mobile
 
 ## Limitations and Future Work
 
@@ -87,54 +101,67 @@ CourseSync-Agent addresses these challenges through an intelligent multi-agent s
    - No collaborative features
    - Static notification rules
    - Limited customization options
-   - 
 
 ### Future Work
 
 1. **Enhanced Capabilities**
-   - Calendar integration via APIs (Google)
+   - Calendar integration via APIs (Google Calendar)
    - Dynamic study hour estimation
-   - Advanced analytics
+   - Advanced analytics and insights
+   - Mobile companion app
 
 2. **Technical Improvements**
    - Multi-LLM provider support
    - Offline mode operation
    - Enhanced error handling
+   - Real-time collaboration
 
 3. **Feature Expansions**
    - Collaborative study groups
    - Custom notification rules
-  - Mobile companion app
-  - Learning style adaptation
+   - Learning style adaptation
+   - Integration with learning management systems
 
 ## Getting Started
 
-1. **Prerequisites**
-   - Python 3.7+
-   - pip package manager
-   - Groq API key
-   - (Optional) Firecrawl API key for web scraping
+### Prerequisites
 
-2. **Installation**
+- Python 3.7+
+- pip package manager
+- Groq API key
+- (Optional) Firecrawl API key for web scraping
+
+### Installation
+
+1. **Clone the repository**
    ```bash
-   # Clone the repository
    git clone https://github.com/AsmSafone/CourseSync-Agent.git
    cd CourseSync-Agent
+   ```
 
-   # Create and activate virtual environment
+2. **Create and activate virtual environment**
+   ```bash
+   # Windows
    python -m venv coursesync-env
-   .\coursesync-env\Scripts\activate  # Windows
-   source coursesync-env/bin/activate # Linux/Mac
+   .\coursesync-env\Scripts\activate
 
-   # Install dependencies
+   # Linux/Mac
+   python -m venv coursesync-env
+   source coursesync-env/bin/activate
+   ```
+
+3. **Install dependencies**
+   ```bash
    pip install -r requirements.txt
    ```
 
-3. **Configuration**
+4. **Configuration**
+   
    Create a `.env` file in the project root:
    ```env
    GROQ_API_KEY=your_groq_api_key_here
    FIRECRAWL_API_KEY=your_firecrawl_api_key_here  # Optional
+   
    # SMTP settings for email notifications (optional)
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
@@ -142,47 +169,81 @@ CourseSync-Agent addresses these challenges through an intelligent multi-agent s
    SMTP_PASS=your_email_app_password
    ```
 
-4. **Running the Application**
-   ```bash
-   python main.py
-   ```
+### Running the Application
 
-5. **Data Persistence**
-   - The application creates a local `data/` folder automatically.
-   - Settings are stored in `data/settings.json`.
-   - Current state (courses and assignments) is stored in `data/data.json` and updated after actions.
-   - Manual saves create timestamped snapshots under `data/`.
-   - Calendar exports default to `data/coursesync_calendar.ics`.
+Start the web server:
+```bash
+python main.py
+```
 
-## Usage
+Or run directly:
+```bash
+python webui.py
+```
 
-1. **Adding Courses**
-   - Input syllabus text directly
-   - Or provide course webpage URL for scraping
+Then open your browser and navigate to:
+```
+http://localhost:8000
+```
 
-2. **Analyzing Workload**
-   - View weekly hour distribution
-   - Identify high-risk periods
-   - Get personalized recommendations
+### Data Persistence
 
-3. **Managing Schedule**
-   - Generate optimized study plans
-   - Customize daily study hours
-   - Track assignment progress
+- The application creates a local `data/` folder automatically
+- Settings are stored in `data/settings.json`
+- Current state (courses and assignments) is stored in `data/data.json` and updated automatically
+- Calendar exports default to `data/coursesync_calendar.ics`
 
-4. **Smart Notifications**
-   - Receive strategic reminders
-   - Get early warnings for heavy workloads
-   - Celebrate assignment completions
-   - Optional email delivery: enable in Settings and set destination email
-   - Requires SMTP credentials in `.env`
-   - Background scheduler can be enabled in Settings; notifications are sent at their `send_at` time
+## Usage Guide
 
-5. **Settings**
-   - Configure daily study hours, risk threshold, notification lead days
-   - Toggle email notifications and set recipient email
-   - Toggle background scheduler and set poll interval seconds
-   - Configure calendar export filename
+### Adding Courses
+
+1. Navigate to the **Courses** page
+2. Click **Add Course** button
+3. Choose your input method:
+   - **Text**: Paste syllabus content directly
+   - **URL**: Provide a course webpage URL for automatic scraping
+   - **PDF**: Upload a PDF file containing the syllabus
+4. Enter the semester start date
+5. The AI will automatically parse and extract all assignments
+
+### Managing Assignments
+
+- View all assignments on the **Assignments** page
+- Filter by: All, Upcoming, Completed, or In Progress
+- Update progress using the progress bar or input field
+- Track due dates and estimated hours
+
+### Analyzing Workload
+
+1. Go to the **Workload** page
+2. Click **Analyze** to generate workload analysis
+3. View:
+   - Total study hours
+   - Weekly breakdown with visual charts
+   - Risk periods identification
+   - Personalized recommendations
+
+### Generating Study Schedule
+
+1. Navigate to the **Schedule** page
+2. Set your preferred study hours per day
+3. Click **Generate** to create a personalized schedule
+4. View daily tasks with priorities and time allocations
+5. Review warnings and recommendations
+
+### Smart Notifications
+
+- Visit the **Notifications** page
+- Click **Refresh** to generate smart notifications
+- View strategic reminders, deadline alerts, and study recommendations
+- Enable email notifications in Settings for automatic delivery
+
+### Settings
+
+Configure your preferences:
+- **Study Preferences**: Daily hours, risk threshold, notification lead days
+- **Email Notifications**: Enable/disable, set recipient email, configure scheduler
+- **Export**: Download calendar file (.ics format)
 
 ## Contributing
 

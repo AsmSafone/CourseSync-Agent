@@ -4,5 +4,4 @@ __all__ = [
     "utils",
     "prompts",
     "agent",
-    "cli",
 ]
