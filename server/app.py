@@ -106,7 +106,18 @@ class SettingsUpdate(BaseModel):
     email_schedule_enabled: Optional[bool] = None
     notification_poll_seconds: Optional[int] = None
 
+class ChatRequest(BaseModel):
+    question: str
+
 # API Routes
+@app.post("/api/chat")
+async def chat_with_assistant(request: ChatRequest):
+    """Chat with the academic assistant"""
+    try:
+        response = agent.chat(request.question, state.courses, state.all_assignments)
+        return {"success": True, "response": response}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/state")
@@ -309,7 +320,7 @@ async def get_notifications():
                 continue  # Don't create notification
             
             notifications.append({
-                "id": notification_id(assignment.get("name", "") + due_date_str),
+                "id": notification_id({"type": notification_type, "message": message, "send_at": now.isoformat()}),
                 "type": notification_type,
                 "title": title,
                 "message": message,
@@ -329,7 +340,19 @@ async def update_progress(update: ProgressUpdate):
     """Update assignment progress"""
     try:
         if 0 <= update.assignment_index < len(state.all_assignments):
-            state.all_assignments[update.assignment_index]["progress"] = max(0, min(100, update.progress))
+            assignment = state.all_assignments[update.assignment_index]
+            old_progress = assignment.get("progress", 0)
+            new_progress = max(0, min(100, update.progress))
+            
+            assignment["progress"] = new_progress
+            
+            # Update completed_at timestamp
+            if new_progress == 100 and old_progress < 100:
+                assignment["completed_at"] = datetime.now().isoformat()
+            elif new_progress < 100:
+                # Remove completion timestamp if getting un-completed
+                assignment.pop("completed_at", None)
+                
             state.persist()
             return {"success": True}
         else:

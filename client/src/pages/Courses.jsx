@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getState, addSyllabusText, addSyllabusUrl, addSyllabusPdf, deleteCourse } from '../services/api';
-import { Trash2, Plus, FileText, Link as LinkIcon, Upload, Loader, BookOpen, CheckCircle, Clock, Users } from 'lucide-react';
+import { Trash2, Plus, FileText, Link as LinkIcon, Upload, Loader, BookOpen, CheckCircle, Clock, Users, ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,8 @@ const Courses = () => {
     const [activeTab, setActiveTab] = useState('text'); // text, url, pdf
     const [semesterStart, setSemesterStart] = useState('2025-09-01');
     const [loading, setLoading] = useState(false);
+    const [selectedCourse, setSelectedCourse] = useState(null);
+    const location = useLocation();
 
     // Form Inputs
     const [textInput, setTextInput] = useState('');
@@ -23,6 +26,14 @@ const Courses = () => {
     useEffect(() => {
         loadCourses();
     }, []);
+
+    useEffect(() => {
+        if (location.state?.selectedCourse) {
+            setSelectedCourse(location.state.selectedCourse);
+            // Optional: clear state to prevent reopening on generic back navigation if desired
+            // history.replaceState({}, document.title) // simplified
+        }
+    }, [location]);
 
     const loadCourses = async () => {
         const data = await getState();
@@ -70,13 +81,135 @@ const Courses = () => {
             console.error(e);
             alert("Failed to delete course");
         }
-    }
+    };
 
     const tabs = [
         { id: 'text', label: 'Paste Text', icon: FileText },
         { id: 'url', label: 'URL', icon: LinkIcon },
         { id: 'pdf', label: 'Upload PDF', icon: Upload },
     ];
+
+    if (selectedCourse) {
+        return (
+            <div className="space-y-6 pb-10">
+                <Button
+                    variant="ghost"
+                    className="gap-2 pl-0 hover:bg-transparent hover:text-blue-600"
+                    onClick={() => setSelectedCourse(null)}
+                >
+                    <ArrowLeft size={20} /> Back to Courses
+                </Button>
+
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                    <div className="flex-1 space-y-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <Badge variant="secondary" className="text-sm px-3 py-1">{selectedCourse.course_code}</Badge>
+                                <span className="text-sm text-muted-foreground font-medium">Professor Name</span>
+                            </div>
+                            <h1 className="text-3xl font-bold tracking-tight">{selectedCourse.course_name}</h1>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Card className="border-0 shadow-sm bg-blue-50 dark:bg-blue-900/20">
+                                <CardContent className="p-4 flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-lg text-blue-600 dark:text-blue-200">
+                                        <BookOpen size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-semibold uppercase">Total Tasks</p>
+                                        <p className="text-xl font-bold">{selectedCourse.assignments?.length || 0}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card className="border-0 shadow-sm bg-green-50 dark:bg-green-900/20">
+                                <CardContent className="p-4 flex items-center gap-3">
+                                    <div className="p-2 bg-green-100 dark:bg-green-800 rounded-lg text-green-600 dark:text-green-200">
+                                        <CheckCircle size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-semibold uppercase">Completed</p>
+                                        <p className="text-xl font-bold">{selectedCourse.assignments?.filter(a => a.progress === 100).length || 0}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card className="border-0 shadow-sm bg-purple-50 dark:bg-purple-900/20">
+                                <CardContent className="p-4 flex items-center gap-3">
+                                    <div className="p-2 bg-purple-100 dark:bg-purple-800 rounded-lg text-purple-600 dark:text-purple-200">
+                                        <Clock size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-muted-foreground font-semibold uppercase">Pending</p>
+                                        <p className="text-xl font-bold">{selectedCourse.assignments?.filter(a => (a.progress || 0) < 100).length || 0}</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <Card className="border-0 shadow-md">
+                            <CardHeader>
+                                <CardTitle>Course Assignments</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {(!selectedCourse.assignments || selectedCourse.assignments.length === 0) ? (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        No assignments found for this course.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {selectedCourse.assignments.map((assignment, idx) => (
+                                            <div key={idx} className="flex items-start gap-4 p-4 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
+                                                <div className={cn(
+                                                    "h-10 w-10 shrink-0 rounded-full flex items-center justify-center font-bold text-sm",
+                                                    assignment.progress === 100
+                                                        ? "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-300"
+                                                        : "bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                                )}>
+                                                    {idx + 1}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <h4 className={cn(
+                                                            "font-semibold text-base line-clamp-1",
+                                                            assignment.progress === 100 && "text-muted-foreground line-through"
+                                                        )}>{assignment.name}</h4>
+                                                        <Badge variant={assignment.progress === 100 ? "secondary" : "default"} className={cn("ml-2 shrink-0", assignment.progress === 100 && "bg-slate-100 text-slate-500")}>
+                                                            {assignment.progress === 100 ? "Done" : "Pending"}
+                                                        </Badge>
+                                                    </div>
+                                                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{assignment.description || "No description provided."}</p>
+
+                                                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground font-medium">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <CalendarIcon size={14} />
+                                                            Due: {assignment.due_date}
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock size={14} />
+                                                            Est: {assignment.estimated_hours}h
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-primary rounded-full"
+                                                                    style={{ width: `${assignment.progress || 0}%` }}
+                                                                />
+                                                            </div>
+                                                            {assignment.progress || 0}%
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8 pb-10">
@@ -280,9 +413,10 @@ const Courses = () => {
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className="group"
+                                    className="group cursor-pointer"
+                                    onClick={() => setSelectedCourse(course)}
                                 >
-                                    <Card className="border-0 shadow-sm hover:shadow-lg transition-all bg-white dark:bg-slate-900">
+                                    <Card className="border-0 shadow-sm hover:shadow-lg transition-all bg-white dark:bg-slate-900 border-l-4 border-l-transparent hover:border-l-blue-500">
                                         <CardContent className="p-6">
                                             <div className="flex items-start justify-between gap-4 mb-4">
                                                 <div className="flex-1">
@@ -299,7 +433,10 @@ const Courses = () => {
                                                 <motion.button
                                                     whileHover={{ scale: 1.1 }}
                                                     whileTap={{ scale: 0.95 }}
-                                                    onClick={() => handleDelete(idx)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDelete(idx);
+                                                    }}
                                                     className="p-2 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-950/20 transition-colors flex-shrink-0"
                                                     title="Delete Course"
                                                 >

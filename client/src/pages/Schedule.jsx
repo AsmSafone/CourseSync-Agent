@@ -11,6 +11,7 @@ const Schedule = () => {
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all'); // all, pending, overdue, completed
+    const [courseFilter, setCourseFilter] = useState('all');
 
     useEffect(() => {
         loadData();
@@ -56,6 +57,13 @@ const Schedule = () => {
     } else if (filter === 'completed') {
         filtered = items.filter(a => a.progress === 100);
     }
+
+    if (courseFilter !== 'all') {
+        filtered = filtered.filter(a => a.course === courseFilter);
+    }
+
+    // Get unique courses
+    const uniqueCourses = [...new Set(items.map(item => item.course))].sort();
 
     // Group by Month/Week
     const grouped = filtered.reduce((acc, item) => {
@@ -146,28 +154,43 @@ const Schedule = () => {
             </div>
 
             {/* Filter Buttons */}
-            <div className="flex gap-2 flex-wrap">
-                {[
-                    { id: 'all', label: 'All', icon: TrendingUp },
-                    { id: 'pending', label: 'Pending', icon: Clock },
-                    { id: 'overdue', label: 'Overdue', icon: AlertCircle },
-                    { id: 'completed', label: 'Completed', icon: Check },
-                ].map(btn => (
-                    <motion.button
-                        key={btn.id}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => setFilter(btn.id)}
-                        className={cn(
-                            "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all",
-                            filter === btn.id
-                                ? "bg-blue-600 dark:bg-blue-600 text-white shadow-lg"
-                                : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
-                        )}
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+                <div className="flex gap-2 flex-wrap">
+                    {[
+                        { id: 'all', label: 'All', icon: TrendingUp },
+                        { id: 'pending', label: 'Pending', icon: Clock },
+                        { id: 'overdue', label: 'Overdue', icon: AlertCircle },
+                        { id: 'completed', label: 'Completed', icon: Check },
+                    ].map(btn => (
+                        <motion.button
+                            key={btn.id}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setFilter(btn.id)}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all",
+                                filter === btn.id
+                                    ? "bg-blue-600 dark:bg-blue-600 text-white shadow-lg"
+                                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                            )}
+                        >
+                            <btn.icon className="w-4 h-4" /> {btn.label}
+                        </motion.button>
+                    ))}
+                </div>
+
+                <div className="w-full sm:w-auto">
+                    <select
+                        value={courseFilter}
+                        onChange={(e) => setCourseFilter(e.target.value)}
+                        className="w-full sm:w-48 px-4 py-2 rounded-lg font-semibold text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors appearance-none"
                     >
-                        <btn.icon className="w-4 h-4" /> {btn.label}
-                    </motion.button>
-                ))}
+                        <option value="all">All Courses</option>
+                        {uniqueCourses.map(course => (
+                            <option key={course} value={course}>{course}</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
             {loading && (

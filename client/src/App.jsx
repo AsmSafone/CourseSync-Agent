@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import Schedule from './pages/Schedule';
 import Settings from './pages/Settings';
+import AIAssistant from './pages/AIAssistant';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/courses" element={<Courses />} />
           <Route path="/schedule" element={<Schedule />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/assistant" element={<AIAssistant />} />
         </Routes>
       </Layout>
     </BrowserRouter>

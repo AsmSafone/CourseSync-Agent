@@ -10,6 +10,7 @@ from .prompts import (
     WORKLOAD_ANALYZER_PROMPT,
     SCHEDULE_OPTIMIZER_PROMPT,
     NOTIFICATION_PROMPT,
+    AI_ASSISTANT_PROMPT,
 )
 from .utils import console, extract_json
 
@@ -98,3 +99,19 @@ Extract all assignments in JSON format."""
 
         result = extract_json(response)
         return result if isinstance(result, list) else result.get("notifications", [])
+
+    def chat(self, question: str, courses: List[Dict], assignments: List[Dict]) -> str:
+        """Answer student questions about their courses"""
+        user_prompt = f"""Student Question: {question}
+
+        Context:
+        Courses: {json.dumps(courses, indent=2)}
+        Assignments: {json.dumps(assignments, indent=2)}
+
+        Answer the student's question based on the context."""
+
+        with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress:
+            progress.add_task("🤖 Thinking...", total=None)
+            response = self.groq.call(AI_ASSISTANT_PROMPT, user_prompt, temperature=0.7)
+
+        return response
