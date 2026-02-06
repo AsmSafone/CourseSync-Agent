@@ -44,4 +44,6 @@ export const updateSettings = (settings) => api.post('/api/settings', settings);
 export const deleteCourse = (index) => api.delete(`/api/course/${index}`);
 export const getWorkload = () => api.get('/api/workload');
 
+export const chatWithAI = (question) => api.post('/api/chat', { question });
+
 export default api;

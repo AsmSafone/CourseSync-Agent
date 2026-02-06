@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, BookOpen, Calendar, Settings, Menu, Bell, LogOut, User, X, AlertCircle, Clock } from 'lucide-react';
+import { LayoutDashboard, BookOpen, Calendar, Settings, Menu, Bell, LogOut, User, X, AlertCircle, Clock, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,24 @@ const Layout = ({ children }) => {
     const [showNotifications, setShowNotifications] = useState(false);
     const [notifications, setNotifications] = useState([]);
     const location = useLocation();
-
-
+    const notificationRef = useRef(null);
 
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+                setShowNotifications(false);
+            }
+        };
+
+        if (showNotifications) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showNotifications]);
 
     useEffect(() => {
         // Load notifications on mount
@@ -42,6 +56,7 @@ const Layout = ({ children }) => {
         { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { to: '/courses', icon: BookOpen, label: 'Courses' },
         { to: '/schedule', icon: Calendar, label: 'Schedule' },
+        { to: '/assistant', icon: Sparkles, label: 'AI Assistant' },
         { to: '/settings', icon: Settings, label: 'Settings' },
     ];
 
@@ -114,7 +129,8 @@ const Layout = ({ children }) => {
 
                     {/* Right Section */}
                     <div className="flex items-center gap-2">
-                        <div className="relative">
+
+                        <div className="relative" ref={notificationRef}>
                             <motion.button
                                 whileHover={{ scale: 1.05, backgroundColor: 'rgba(0,0,0,0.05)' }}
                                 whileTap={{ scale: 0.95 }}
@@ -139,76 +155,63 @@ const Layout = ({ children }) => {
                                 )}
                             </motion.button>
 
-                            {/* Notification Panel with clickable backdrop to close on outside click */}
+                            {/* Notification Panel */}
                             <AnimatePresence>
                                 {showNotifications && (
                                     <motion.div
-                                        initial={{ opacity: 0 }}
-                                        animate={{ opacity: 1 }}
-                                        exit={{ opacity: 0 }}
-                                        className="fixed inset-0 z-40 flex items-start justify-end pointer-events-auto"
+                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50 origin-top-right"
                                     >
-                                        {/* Backdrop: clicking closes the panel */}
-                                        <div
-                                            className="absolute inset-0"
-                                            onClick={() => setShowNotifications(false)}
-                                        />
+                                        <div className="p-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 rounded-t-xl z-10">
+                                            <h3 className="font-bold text-sm flex items-center gap-2">
+                                                <Bell size={16} />
+                                                Notifications
+                                            </h3>
+                                            <p className="text-xs text-muted-foreground mt-1">{notifications.length} total • {overdue} overdue</p>
+                                        </div>
 
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                                            className="relative mr-4 mt-16 w-80 max-h-96 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 z-50"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            <div className="p-4 border-b border-slate-200 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 rounded-t-xl">
-                                                <h3 className="font-bold text-sm flex items-center gap-2">
-                                                    <Bell size={16} />
-                                                    Notifications
-                                                </h3>
-                                                <p className="text-xs text-muted-foreground mt-1">{notifications.length} total • {overdue} overdue</p>
+                                        {notifications.length === 0 ? (
+                                            <div className="p-8 text-center">
+                                                <div className="text-4xl mb-2">🎉</div>
+                                                <p className="text-sm text-muted-foreground">All caught up! No notifications</p>
                                             </div>
-
-                                            {notifications.length === 0 ? (
-                                                <div className="p-8 text-center">
-                                                    <div className="text-4xl mb-2">🎉</div>
-                                                    <p className="text-sm text-muted-foreground">All caught up! No notifications</p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-2 p-2">
-                                                    {notifications.slice(0, 5).map((notif, idx) => (
-                                                        <motion.div
-                                                            key={notif.id}
-                                                            initial={{ opacity: 0, x: -20 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            transition={{ delay: idx * 0.05 }}
-                                                            className={cn(
-                                                                "p-3 rounded-lg text-xs border-l-4 transition-all hover:shadow-md cursor-pointer",
-                                                                notif.type === 'error' && "bg-red-50 dark:bg-red-950/20 border-red-500 hover:bg-red-100 dark:hover:bg-red-950/40",
-                                                                notif.type === 'warning' && "bg-amber-50 dark:bg-amber-950/20 border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-950/40",
-                                                                notif.type === 'success' && "bg-green-50 dark:bg-green-950/20 border-green-500 hover:bg-green-100 dark:hover:bg-green-950/40",
-                                                                notif.type === 'info' && "bg-blue-50 dark:bg-blue-950/20 border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-950/40",
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <div className="font-semibold text-sm">{notif.title || (notif.assignment && notif.assignment.title) || 'Notification'}</div>
-                                                                <div className="text-2xs text-muted-foreground">{notif.days_until != null ? (notif.days_until < 0 ? `${Math.abs(notif.days_until)}d overdue` : `${notif.days_until}d`) : ''}</div>
-                                                            </div>
-                                                            <div className="text-muted-foreground mt-1 text-xs">{notif.message}</div>
-                                                            <div className="mt-2 flex items-center justify-between text-2xs text-muted-foreground">
-                                                                <div>{(notif.course && (notif.course.name || notif.course.title)) || notif.course || (notif.assignment && notif.assignment.course) || ''}</div>
-                                                                <div>{notif.due_date ? new Date(notif.due_date).toLocaleDateString() : ''}</div>
-                                                            </div>
-                                                        </motion.div>
-                                                    ))}
-                                                    {notifications.length > 5 && (
-                                                        <div className="text-center p-2">
-                                                            <p className="text-xs text-muted-foreground">+{notifications.length - 5} more</p>
+                                        ) : (
+                                            <div className="space-y-2 p-2">
+                                                {notifications.slice(0, 5).map((notif, idx) => (
+                                                    <motion.div
+                                                        key={notif.id}
+                                                        initial={{ opacity: 0, x: -20 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        transition={{ delay: idx * 0.05 }}
+                                                        className={cn(
+                                                            "p-3 rounded-lg text-xs border-l-4 transition-all hover:shadow-md cursor-pointer",
+                                                            notif.type === 'error' && "bg-red-50 dark:bg-red-950/20 border-red-500 hover:bg-red-100 dark:hover:bg-red-950/40",
+                                                            notif.type === 'warning' && "bg-amber-50 dark:bg-amber-950/20 border-amber-500 hover:bg-amber-100 dark:hover:bg-amber-950/40",
+                                                            notif.type === 'success' && "bg-green-50 dark:bg-green-950/20 border-green-500 hover:bg-green-100 dark:hover:bg-green-950/40",
+                                                            notif.type === 'info' && "bg-blue-50 dark:bg-blue-950/20 border-blue-500 hover:bg-blue-100 dark:hover:bg-blue-950/40",
+                                                        )}
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="font-semibold text-sm">{notif.title || (notif.assignment && notif.assignment.title) || 'Notification'}</div>
+                                                            <div className="text-2xs text-muted-foreground">{notif.days_until != null ? (notif.days_until < 0 ? `${Math.abs(notif.days_until)}d overdue` : `${notif.days_until}d`) : ''}</div>
                                                         </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </motion.div>
+                                                        <div className="text-muted-foreground mt-1 text-xs">{notif.message}</div>
+                                                        <div className="mt-2 flex items-center justify-between text-2xs text-muted-foreground">
+                                                            <div>{(notif.course && (notif.course.name || notif.course.title)) || notif.course || (notif.assignment && notif.assignment.course) || ''}</div>
+                                                            <div>{notif.due_date ? new Date(notif.due_date).toLocaleDateString() : ''}</div>
+                                                        </div>
+                                                    </motion.div>
+                                                ))}
+                                                {notifications.length > 5 && (
+                                                    <div className="text-center p-2">
+                                                        <p className="text-xs text-muted-foreground">+{notifications.length - 5} more</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </motion.div>
                                 )}
                             </AnimatePresence>

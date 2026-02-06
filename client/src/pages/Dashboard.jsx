@@ -2,103 +2,172 @@ import React, { useEffect, useState } from 'react';
 import { getState } from '../services/api';
 import { Search, Bell, BookOpen, Clock, Users, ArrowRight, User as UserIcon, Calendar as CalendarIcon, ChevronRight, Check, AlertCircle, Plus, Zap, Target, TrendingUp, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-const CalendarWidget = () => {
-    const days = Array.from({ length: 31 }, (_, i) => i + 1);
-    const today = new Date().getDate();
+const CalendarWidget = ({ completedDates }) => {
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const monthNames = ["January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const prevMonthDays = Array.from({ length: firstDayOfMonth }, (_, i) => {
+        const d = new Date(year, month, 0).getDate() - firstDayOfMonth + i + 1;
+        return { day: d, current: false };
+    });
+
+    const currentMonthDays = Array.from({ length: daysInMonth }, (_, i) => ({
+        day: i + 1,
+        current: true
+    }));
+
+    const nextMonthDays = Array.from({ length: 42 - (prevMonthDays.length + currentMonthDays.length) }, (_, i) => ({
+        day: i + 1,
+        current: false
+    }));
+
+    const today = new Date();
+    const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+    const isCompleted = (d) => {
+        if (!completedDates) return false;
+        const dateStr = new Date(year, month, d).toDateString();
+        return completedDates.has(dateStr);
+    };
+
+    const changeMonth = (offset) => {
+        setCurrentDate(new Date(year, month + offset, 1));
+    };
+
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-lg font-bold">December 2025</CardTitle>
+        <Card className="border-0 shadow-sm bg-white dark:bg-slate-950 overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between pb-4 space-y-0">
+                <CardTitle className="text-base font-bold">
+                    {monthNames[month]} {year}
+                </CardTitle>
                 <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-6 w-6"><ChevronRight className="rotate-180" size={14} /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6"><ChevronRight size={14} /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => changeMonth(-1)}>
+                        <ChevronRight className="rotate-180" size={14} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" onClick={() => changeMonth(1)}>
+                        <ChevronRight size={14} />
+                    </Button>
                 </div>
             </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-muted-foreground mb-2">
-                    <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+            <CardContent className="px-3 pb-4">
+                <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                    <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
                 </div>
                 <div className="grid grid-cols-7 gap-1">
-                    {days.map(d => (
-                        <div
-                            key={d}
-                            className={cn(
-                                "flex items-center justify-center aspect-square rounded-full text-sm cursor-pointer transition-all hover:bg-accent",
-                                d === today && "bg-primary text-primary-foreground font-bold shadow-md",
-                                d === 14 && "border-2 border-primary text-primary font-bold"
-                            )}
-                        >
-                            {d}
+                    {prevMonthDays.map((d, i) => (
+                        <div key={`prev-${i}`} className="flex items-center justify-center aspect-square text-xs text-slate-300 dark:text-slate-700">
+                            {d.day}
+                        </div>
+                    ))}
+                    {currentMonthDays.map((d) => {
+                        const completed = isCompleted(d.day);
+                        return (
+                            <div
+                                key={`curr-${d.day}`}
+                                className={cn(
+                                    "flex flex-col items-center justify-center aspect-square rounded-lg text-xs font-semibold cursor-pointer transition-all hover:bg-slate-100 dark:hover:bg-slate-800 relative",
+                                    isToday(d.day) && "bg-blue-600 text-white shadow-md hover:bg-blue-700 font-bold",
+                                    !isToday(d.day) && "text-slate-700 dark:text-slate-300",
+                                    completed && !isToday(d.day) && "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400"
+                                )}
+                            >
+                                {d.day}
+                                {completed && (
+                                    <div className={cn(
+                                        "w-1 h-1 rounded-full mt-0.5",
+                                        isToday(d.day) ? "bg-white" : "bg-green-500"
+                                    )} />
+                                )}
+                            </div>
+                        );
+                    })}
+                    {nextMonthDays.map((d, i) => (
+                        <div key={`next-${i}`} className="flex items-center justify-center aspect-square text-xs text-slate-300 dark:text-slate-700">
+                            {d.day}
                         </div>
                     ))}
                 </div>
             </CardContent>
         </Card>
-    )
+    );
 }
 
-const CourseCard = ({ course, index }) => (
-    <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className="h-full"
-        whileHover={{ y: -4 }}
-    >
-        <Card className="h-full overflow-hidden hover:shadow-lg transition-all group border-0 shadow-md bg-white dark:bg-slate-900">
-            <div className="h-24 bg-gradient-to-br sm:h-32 relative overflow-hidden">
-                <div
-                    className="absolute inset-0 opacity-90 transition-opacity group-hover:opacity-100"
-                    style={{
-                        background: `linear-gradient(135deg, hsl(${index * 60 + 200}, 80%, 60%), hsl(${index * 60 + 240}, 80%, 40%))`
-                    }}
-                />
-                <div className="absolute top-4 left-4 z-10">
-                    <Badge variant="secondary" className="bg-black/30 backdrop-blur-sm text-white border-white/20">
-                        {course.course_code || 'Course'}
-                    </Badge>
-                </div>
-                <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-opacity text-4xl">📚</div>
-            </div>
-            <CardContent className="p-5 flex flex-col gap-3">
-                <div>
-                    <h3 className="font-bold text-lg leading-tight line-clamp-2 mb-0.5">{course.course_name}</h3>
-                    <p className="text-xs text-muted-foreground font-medium">Professor Name</p>
-                </div>
+const CourseCard = ({ course, index }) => {
+    const navigate = useNavigate();
 
-                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
-                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                        <BookOpen size={12} /> {course.assignments?.length || 0} Tasks
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="h-full"
+            whileHover={{ y: -4 }}
+            onClick={() => navigate('/courses', { state: { selectedCourse: course } })}
+        >
+            <Card className="h-full overflow-hidden hover:shadow-lg transition-all group border-0 shadow-md bg-white dark:bg-slate-900 cursor-pointer">
+                <div className="h-24 bg-gradient-to-br sm:h-32 relative overflow-hidden">
+                    <div
+                        className="absolute inset-0 opacity-90 transition-opacity group-hover:opacity-100"
+                        style={{
+                            background: `linear-gradient(135deg, hsl(${index * 60 + 200}, 80%, 60%), hsl(${index * 60 + 240}, 80%, 40%))`
+                        }}
+                    />
+                    <div className="absolute top-4 left-4 z-10">
+                        <Badge variant="secondary" className="bg-black/30 backdrop-blur-sm text-white border-white/20">
+                            {course.course_code || 'Course'}
+                        </Badge>
                     </div>
-                    <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
-                        <Clock size={12} /> 4 weeks
-                    </div>
+                    <div className="absolute bottom-3 right-3 opacity-20 group-hover:opacity-40 transition-opacity text-4xl">📚</div>
                 </div>
+                <CardContent className="p-5 flex flex-col gap-3">
+                    <div>
+                        <h3 className="font-bold text-lg leading-tight line-clamp-2 mb-0.5">{course.course_name}</h3>
+                        <p className="text-xs text-muted-foreground font-medium">Professor Name</p>
+                    </div>
 
-                <div className="space-y-1.5 mt-auto pt-2 border-t border-slate-200 dark:border-slate-800">
-                    <div className="flex justify-between text-xs font-semibold">
-                        <span className="text-slate-600 dark:text-slate-400">Progress</span>
-                        <span className="text-primary">{course.progress || 0}%</span>
+                    <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                            <BookOpen size={12} /> {course.assignments?.length || 0} Tasks
+                        </div>
+                        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-md">
+                            <Clock size={12} /> 4 weeks
+                        </div>
                     </div>
-                    <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${course.progress || 0}%` }}
-                            transition={{ duration: 0.8, ease: "easeOut" }}
-                            className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
-                        />
+
+                    <div className="space-y-1.5 mt-auto pt-2 border-t border-slate-200 dark:border-slate-800">
+                        <div className="flex justify-between text-xs font-semibold">
+                            <span className="text-slate-600 dark:text-slate-400">Progress</span>
+                            <span className="text-primary">{course.progress || 0}%</span>
+                        </div>
+                        <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                            <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${course.progress || 0}%` }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-600"
+                            />
+                        </div>
                     </div>
-                </div>
-            </CardContent>
-        </Card>
-    </motion.div>
-)
+                </CardContent>
+            </Card>
+        </motion.div>
+    );
+};
 
 const Dashboard = () => {
     const [state, setState] = useState(null);
@@ -165,6 +234,51 @@ const Dashboard = () => {
             : 0;
         return { ...course, progress, assignments: courseAssignments };
     });
+
+    // Calculate Streak based on completed_at dates
+    const getStreakData = () => {
+        if (!assignments) return { streak: 0, dates: new Set() };
+
+        // Get all unique completed dates
+        const dates = new Set();
+        assignments.forEach(a => {
+            let dateStr = null;
+            if (a.completed_at) {
+                dateStr = a.completed_at;
+            } else if (a.progress === 100 && a.due_date) {
+                // Fallback for pre-existing completions: use due_date
+                dateStr = a.due_date;
+            }
+
+            if (dateStr) {
+                const date = new Date(dateStr);
+                if (!isNaN(date)) {
+                    dates.add(date.toDateString());
+                }
+            }
+        });
+
+        // Check streak
+        let streak = 0;
+        const today = new Date();
+        // Check up to 365 days back
+        for (let i = 0; i < 365; i++) {
+            const d = new Date();
+            d.setDate(today.getDate() - i);
+            if (dates.has(d.toDateString())) {
+                streak++;
+            } else {
+                // If it's today and we haven't done anything, don't break streak yet IF we have a streak from yesterday?
+                // No, standard streak logic: if today is absent, streak is broken unless we count "current streak active if yesterday was active".
+                // Let's be lenient: if today is missing, but yesterday is present, streak is alive.
+                if (i === 0) continue;
+                break;
+            }
+        }
+        return { streak, dates };
+    };
+
+    const { streak, dates: completedDates } = getStreakData();
 
     const StatCard = ({ icon: Icon, title, value, subtitle, color }) => (
         <motion.div
@@ -242,7 +356,7 @@ const Dashboard = () => {
                 <StatCard
                     icon={TrendingUp}
                     title="Streak"
-                    value="7 days"
+                    value={`${streak} days`}
                     subtitle="Task completion streak"
                     color="bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400"
                 />
@@ -350,7 +464,7 @@ const Dashboard = () => {
                 {/* Right Sidebar */}
                 <div className="space-y-6">
                     {/* Calendar Widget */}
-                    <CalendarWidget />
+                    <CalendarWidget completedDates={completedDates} />
 
                     {/* Quick Stats */}
                     <Card className="border-0 shadow-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
@@ -440,17 +554,7 @@ const Dashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* Motivational Card */}
-                    <Card className="border-0 shadow-sm bg-gradient-to-br from-indigo-500 to-purple-600 text-white overflow-hidden relative">
-                        <div className="absolute -right-8 -top-8 text-6xl opacity-10">✨</div>
-                        <CardContent className="p-6 relative z-10">
-                            <p className="text-sm font-medium mb-2">💪 Daily Motivation</p>
-                            <p className="text-sm font-semibold leading-relaxed">"Every expert was once a beginner. Your effort today is your advantage tomorrow."</p>
-                            <Button variant="ghost" size="sm" className="mt-4 text-indigo-100 hover:text-white hover:bg-white/20 px-0 font-semibold text-xs">
-                                Get more tips <ArrowRight className="w-3 h-3 ml-2" />
-                            </Button>
-                        </CardContent>
-                    </Card>
+
                 </div>
             </div>
         </div>
