@@ -112,14 +112,35 @@ class SettingsUpdate(BaseModel):
 @app.get("/api/state")
 async def get_state():
     """Get current application state"""
+    # Calculate course progress
+    courses_with_progress = []
+    for course in state.courses:
+        course_name = course.get("course_name", "")
+        course_assignments = [a for a in state.all_assignments if a.get("course") == course_name]
+        
+        if course_assignments:
+            completed = sum(1 for a in course_assignments if a.get("progress", 0) == 100)
+            progress = round((completed / len(course_assignments)) * 100)
+        else:
+            progress = 0
+        
+        course_copy = course.copy()
+        course_copy["progress"] = progress
+        course_copy["assignments"] = course_assignments
+        courses_with_progress.append(course_copy)
+    
+    # Get pending assignments (not completed)
+    pending_assignments = [a for a in state.all_assignments if a.get("progress", 0) < 100]
+    
     return {
-        "courses": state.courses,
+        "courses": courses_with_progress,
         "assignments": state.all_assignments,
         "settings": state.settings,
         "stats": {
             "total_courses": len(state.courses),
             "total_assignments": len(state.all_assignments),
             "completed_assignments": sum(1 for a in state.all_assignments if a.get("progress", 0) == 100),
+            "pending_assignments": len(pending_assignments),
         }
     }
 
@@ -141,7 +162,12 @@ async def add_syllabus_text(request: SyllabusRequest):
         else:
             return {"success": False, "error": "Failed to parse syllabus"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        msg = str(e)
+        lower = msg.lower()
+        if "rate limit" in lower or "rate limited" in lower or "groq api unavailable" in lower or "groq" in lower:
+            # Service unavailable / rate limit - return 503 so client can retry
+            raise HTTPException(status_code=503, detail="LLM service unavailable or rate limited. Try again later.")
+        raise HTTPException(status_code=500, detail=msg)
 
 @app.post("/api/syllabus/url")
 async def add_syllabus_url(request: URLRequest):
@@ -165,7 +191,11 @@ async def add_syllabus_url(request: URLRequest):
         else:
             return {"success": False, "error": "Failed to parse scraped content"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        msg = str(e)
+        lower = msg.lower()
+        if "rate limit" in lower or "rate limited" in lower or "groq api unavailable" in lower or "groq" in lower:
+            raise HTTPException(status_code=503, detail="LLM service unavailable or rate limited. Try again later.")
+        raise HTTPException(status_code=500, detail=msg)
 
 @app.post("/api/syllabus/pdf")
 async def add_syllabus_pdf(file: UploadFile = File(...), semester_start: str = "2025-09-01"):
@@ -198,7 +228,11 @@ async def add_syllabus_pdf(file: UploadFile = File(...), semester_start: str = "
         else:
             return {"success": False, "error": "Failed to parse syllabus from PDF"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        msg = str(e)
+        lower = msg.lower()
+        if "rate limit" in lower or "rate limited" in lower or "groq api unavailable" in lower or "groq" in lower:
+            raise HTTPException(status_code=503, detail="LLM service unavailable or rate limited. Try again later.")
+        raise HTTPException(status_code=500, detail=msg)
 
 @app.get("/api/workload")
 async def get_workload():
@@ -228,12 +262,64 @@ async def get_schedule(hours_per_day: int = None):
 @app.get("/api/notifications")
 async def get_notifications():
     """Get smart notifications"""
-    if not state.all_assignments:
-        return {"error": "No assignments to notify about"}
-    
     try:
-        schedule = agent.create_schedule(state.all_assignments, state.settings.get("hours_per_day", 4))
-        notifications = agent.generate_notifications(schedule, state.all_assignments) or []
+        from datetime import datetime, timedelta
+        
+        notifications = []
+        now = datetime.now()
+        lead_days = state.settings.get("notification_lead_days", 3)
+        
+        for assignment in state.all_assignments:
+            if assignment.get("progress", 0) == 100:  # Skip completed
+                continue
+            
+            due_date_str = assignment.get("due_date", "")
+            if not due_date_str:
+                continue
+            
+            try:
+                due_date = datetime.strptime(due_date_str, "%Y-%m-%d")
+            except:
+                continue
+            
+            days_until = (due_date - now).days
+            
+            # Create notifications based on urgency
+            notification_type = "info"
+            title = ""
+            message = ""
+            
+            if days_until < 0:  # Overdue
+                notification_type = "error"
+                title = "🚨 OVERDUE!"
+                message = f"{assignment['name']} ({assignment['course']}) was due {abs(days_until)} days ago!"
+            elif days_until == 0:  # Due today
+                notification_type = "warning"
+                title = "⏰ Due Today!"
+                message = f"{assignment['name']} ({assignment['course']}) is due today!"
+            elif days_until == 1:  # Due tomorrow
+                notification_type = "warning"
+                title = "📌 Due Tomorrow!"
+                message = f"{assignment['name']} ({assignment['course']}) is due tomorrow!"
+            elif days_until <= lead_days:  # Within lead days
+                notification_type = "success"
+                title = "📋 Upcoming"
+                message = f"{assignment['name']} ({assignment['course']}) is due in {days_until} days"
+            else:
+                continue  # Don't create notification
+            
+            notifications.append({
+                "id": notification_id(assignment.get("name", "") + due_date_str),
+                "type": notification_type,
+                "title": title,
+                "message": message,
+                "assignment": assignment['name'],
+                "course": assignment['course'],
+                "due_date": due_date_str,
+                "days_until": days_until,
+                "timestamp": now.isoformat()
+            })
+        
         return {"success": True, "notifications": notifications}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
