@@ -4,18 +4,19 @@ Usage:
     python main.py         # Run web UI
 """
 
-try:
-    # Load environment variables from a .env file if python-dotenv is available.
-    # This must run before importing package modules that read os.environ at import time.
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except Exception:
-    # If python-dotenv isn't installed, continue silently; environment vars may still be set externally.
-    pass
-
 from server.app import app
 from server.agent.utils import console
+
+try:
+    # Load environment variables from a .env file if python-dotenv is available.
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+    console.print("[green]✅ Environment variables loaded from .env file.[/green]")
+except Exception:
+    # If python-dotenv isn't installed, continue silently; environment vars may still be set externally.
+    console.print("[yellow]⚠️  python-dotenv not installed. Skipping .env loading.[/yellow]")
+    pass
 
 
 if __name__ == "__main__":

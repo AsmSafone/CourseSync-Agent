@@ -3,6 +3,9 @@ from typing import List, Dict
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 import json
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env file
 
 from .clients import GroqClient, FirecrawlClient
 from .prompts import (
@@ -19,7 +22,6 @@ class CourseSyncAgent:
     """Core CourseSync AI agent with parsing, analysis and scheduling helpers."""
 
     def __init__(self):
-        # GROQ_API_KEY missing check is handled by client; we keep an early guard to be friendly
         self.groq = GroqClient()
         self.firecrawl = FirecrawlClient()
 
